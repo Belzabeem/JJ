@@ -27,10 +27,8 @@ export default function RootWalletButton() {
       setError(null)
       console.log('Wallet disconnected')
     } else {
-      // Connect wallet
       setIsConnecting(true)
       setError(null)
-      
       try {
         await connectStellar()
         console.log('Wallet connected successfully')
@@ -43,28 +41,23 @@ export default function RootWalletButton() {
     }
   }
 
-  // Helper function to get button text
   const getButtonText = () => {
     if (isConnecting) return 'Connecting...'
-    if (isConnected && walletAddress) {
-      // Show shortened address like "GA7X...Y2Z3"
+    if (isConnected && walletAddress)
       return `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
-    }
     return 'Connect Wallet'
   }
 
-  // Helper function to get button title (tooltip)
   const getButtonTitle = () => {
-    if (isConnected && walletAddress) {
-      return `Connected: ${walletAddress} (${walletId || 'Unknown wallet'})`
-    }
+    if (isConnected && walletAddress)
+      return `Connected: ${walletAddress} (${walletId ?? 'Unknown wallet'})`
     return 'Connect your Stellar wallet'
   }
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <RainbowButton 
-        variant={'outline'} 
+      <RainbowButton
+        variant={'outline'}
         className="bg-accent"
         onClick={handleClick}
         disabled={isConnecting}
@@ -72,7 +65,7 @@ export default function RootWalletButton() {
       >
         {getButtonText()}
       </RainbowButton>
-      
+
       {error && (
         <div className="text-red-500 text-sm max-w-xs text-center">
           {error}
