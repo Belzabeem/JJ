@@ -3,10 +3,10 @@
 import { StarknetConfig } from '@starknet-react/core';
 import { publicProvider } from '@starknet-react/core';
 
-const starknetGoerli = {
-  id: 534353n,
-  name: 'Starknet Goerli',
-  network: 'starknet-goerli',
+const starknetSepolia = {
+  id: 393402131332719809025n,
+  name: 'Starknet Sepolia',
+  network: 'starknet-sepolia',
   nativeCurrency: {
     name: 'Ether',
     symbol: 'ETH',
@@ -15,10 +15,10 @@ const starknetGoerli = {
   },
   rpcUrls: {
     default: {
-      http: ['https://rpc.starknet-testnet.lava.build'],
+      http: ['https://starknet-sepolia.public.blastapi.io'],
     },
     public: {
-      http: ['https://rpc.starknet-testnet.lava.build'],
+      http: ['https://starknet-sepolia.public.blastapi.io'],
     },
   },
 };
@@ -29,7 +29,7 @@ const starknetGoerli = {
 export default function StarknetProviderWrapper({ children }: { children: React.ReactNode }) {
   return (
     <StarknetConfig
-      chains={[starknetGoerli]}
+      chains={[starknetSepolia]}
       provider={publicProvider()}
     >
       {children}
