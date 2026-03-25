@@ -6,11 +6,13 @@ import {
   CardDescription,
   CardTitle,
 } from '@/components/ui/card'
-
 import { BorderBeam } from '@/components/magicui/border-beam'
 import { ArrowRight } from 'lucide-react'
+import { useUI } from '@/app/contexts/UIContext'
 
 export default function ProcessingButtonCardComponent() {
+  const { setActiveTab } = useUI()
+
   return (
     <Card className="relative overflow-hidden p-2 mt-2">
       <CardContent className=' flex items-center justify-between '>
@@ -26,6 +28,7 @@ export default function ProcessingButtonCardComponent() {
               className="relative overflow-hidden"
               size="lg"
               variant="outline"
+              onClick={() => setActiveTab('process')}
             >
               Continue to Processing <ArrowRight/>
               <BorderBeam

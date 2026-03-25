@@ -1,3 +1,4 @@
+'use client'
 import React from 'react'
 import {
   AlertDialog,
@@ -11,8 +12,11 @@ import {
 import { Button } from './ui/button'
 import { BorderBeam } from './magicui/border-beam'
 import { ArrowRight } from 'lucide-react'
+import { useUI } from '@/app/contexts/UIContext'
 
 export default function ProcessAlertButton() {
+  const { setActiveTab } = useUI()
+
   return (
     <AlertDialog>
       <AlertDialogTrigger>
@@ -41,7 +45,7 @@ export default function ProcessAlertButton() {
           </AlertDialogTitle>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction>Okay</AlertDialogAction>
+          <AlertDialogAction onClick={() => setActiveTab('process')}>Continue</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

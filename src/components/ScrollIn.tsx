@@ -632,6 +632,9 @@ export default function WalletBalances() {
   const [starknetBalances, setStarknetBalances] = useState<Balances>({})
   const [stellarBalances, setStellarBalances] = useState<StellarBalance[]>([])
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set())
+  const [stellarAccountError, setStellarAccountError] = useState<'not_found' | 'rate_limit' | 'maintenance' | null>(null)
+  const [stellarGeneralError, setStellarGeneralError] = useState<string | null>(null)
+  const [isLoadingFriendbot, setIsLoadingFriendbot] = useState(false)
 
   // Get addresses from context
   const starknetAddress = state.starknet.address
@@ -684,6 +687,36 @@ export default function WalletBalances() {
     }
   }
 
+  const fetchStellarBalancesForAddress = async (address: string) => {
+    try {
+      setStellarAccountError(null)
+      const res = await fetch(
+        `https://horizon-testnet.stellar.org/accounts/${address}`
+      )
+      if (!res.ok) {
+        if (res.status === 404) {
+          setStellarAccountError('not_found')
+          setStellarBalances([])
+          return
+        }
+        if (res.status === 429) {
+          setStellarAccountError('rate_limit')
+          return
+        }
+        if (res.status === 503 || res.status === 504) {
+          setStellarAccountError('maintenance')
+          return
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+      }
+      const data = await res.json()
+      setStellarBalances(data.balances || [])
+    } catch (err) {
+      console.error('Error fetching Stellar balances:', err)
+      throw err
+    }
+  }
+
   // ── Stellar wallet ─────────────────────────────────────────────────────────
 
   const fetchStellarBalances = async () => {
@@ -705,7 +738,7 @@ export default function WalletBalances() {
               setStellarBalances(data.balances || [])
               resolve()
             } catch (err) {
-              console.error('Error fetching Stellar balances:', err)
+              console.error('Error in onWalletSelected:', err)
               reject(err)
             }
           },
@@ -717,6 +750,26 @@ export default function WalletBalances() {
     } catch (error) {
       console.error('Error initializing Stellar wallet:', error)
       throw error
+    }
+  }
+
+  const fundWithFriendbot = async () => {
+    if (!stellarAddress) return
+    setIsLoadingFriendbot(true)
+    try {
+      setStellarGeneralError(null)
+      const res = await fetch(`https://friendbot.stellar.org?addr=${stellarAddress}`)
+      if (!res.ok) {
+        throw new Error('Friendbot funding failed')
+      }
+      // Wait a bit for Horizon to catch up
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await fetchStellarBalancesForAddress(stellarAddress)
+    } catch (err) {
+      console.error('Friendbot error:', err)
+      setStellarGeneralError('Friendbot funding failed. Please try again later.')
+    } finally {
+      setIsLoadingFriendbot(false)
     }
   }
 
@@ -941,25 +994,84 @@ export default function WalletBalances() {
             {stellarAddress && (
               <>
                 <h2 className="text-xl font-bold mb-2">Stellar Balances</h2>
-                {stellarBalances.map((bal, idx) => {
-                  const tokenId = `stellar-${idx}`
-                  const symbol = bal.asset_type === 'native' ? 'XLM' : bal.asset_code || 'Unknown'
-                  const shortSymbol = bal.asset_type === 'native' ? 'XLM' : bal.asset_code || '??'
-                  const price = Number(parseFloat(bal.balance).toFixed(4))
-                  const belowThreshold = price <= minThreshold
-                  return (
-                    <CardSection
-                      key={idx}
-                      token={symbol}
-                      tokenShort={shortSymbol}
-                      price={price}
-                      isSelected={selectedTokens.has(tokenId)}
-                      onSelectionChange={selected => handleTokenSelection(tokenId, selected)}
-                      belowThreshold={belowThreshold}
-                      minThreshold={minThreshold}
-                    />
-                  )
-                })}
+                
+                {stellarAccountError === 'not_found' && (
+                  <div className="my-4 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-yellow-500 mb-2">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-semibold">Account Not Found</span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-4">
+                      This account doesn't exist on Stellar testnet yet. It needs to be funded with XLM to be active.
+                    </p>
+                    {process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'testnet' && (
+                      <Button 
+                        onClick={fundWithFriendbot} 
+                        disabled={isLoadingFriendbot}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
+                      >
+                        {isLoadingFriendbot ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Funding Account...
+                          </>
+                        ) : (
+                          'Fund with Friendbot'
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {stellarAccountError === 'rate_limit' && (
+                  <div className="my-4 p-4 border border-red-500/50 bg-red-500/10 rounded-lg text-red-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-semibold">Rate Limit Exceeded</span>
+                    </div>
+                    <p className="text-sm">Too many requests. Please try again later.</p>
+                  </div>
+                )}
+
+                {stellarAccountError === 'maintenance' && (
+                  <div className="my-4 p-4 border border-blue-500/50 bg-blue-500/10 rounded-lg text-blue-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-semibold">Network Maintenance</span>
+                    </div>
+                    <p className="text-sm">Stellar network is currently under maintenance. Please try again later.</p>
+                  </div>
+                )}
+
+                {stellarGeneralError && (
+                  <div className="my-4 p-4 border border-red-500/50 bg-red-500/10 rounded-lg text-red-500">
+                    <p className="text-sm">{stellarGeneralError}</p>
+                  </div>
+                )}
+
+                {stellarBalances.length > 0 ? (
+                  stellarBalances.map((bal, idx) => {
+                    const tokenId = `stellar-${idx}`
+                    const symbol = bal.asset_type === 'native' ? 'XLM' : bal.asset_code || 'Unknown'
+                    const shortSymbol = bal.asset_type === 'native' ? 'XLM' : bal.asset_code || '??'
+                    const price = Number(parseFloat(bal.balance).toFixed(4))
+                    const belowThreshold = price <= minThreshold
+                    return (
+                      <CardSection
+                        key={idx}
+                        token={symbol}
+                        tokenShort={shortSymbol}
+                        price={price}
+                        isSelected={selectedTokens.has(tokenId)}
+                        onSelectionChange={selected => handleTokenSelection(tokenId, selected)}
+                        belowThreshold={belowThreshold}
+                        minThreshold={minThreshold}
+                      />
+                    )
+                  })
+                ) : (
+                  !stellarAccountError && <p className="text-gray-500 text-sm italic">No balances found</p>
+                )}
               </>
             )}
           </ScrollArea>
