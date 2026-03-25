@@ -21,6 +21,7 @@ import {
 import { validateBatch, buildTransactionSummary } from '@/lib/validation'
 import { createStellarContract, StellarContract } from '@/lib/stellar/contract'
 import { createStarknetContract, StarknetContract } from '@/lib/starknet/contract'
+import { useWallet } from '@/context/WalletContext'
 
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -627,11 +628,14 @@ const EligibilityBanner: React.FC<{
 // ─── WalletBalances (main export) ─────────────────────────────────────────────
 
 export default function WalletBalances() {
+  const { state } = useWallet()
   const [starknetBalances, setStarknetBalances] = useState<Balances>({})
   const [stellarBalances, setStellarBalances] = useState<StellarBalance[]>([])
-  const [starknetAddress, setStarknetAddress] = useState<string | null>(null)
-  const [stellarAddress, setStellarAddress] = useState<string | null>(null)
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set())
+
+  // Get addresses from context
+  const starknetAddress = state.starknet.address
+  const stellarAddress = state.stellar.address
 
   // ── Threshold state — initialised from localStorage, persisted on change ──
   const [minThreshold, setMinThreshold] = useState<number>(() => {
@@ -645,20 +649,6 @@ export default function WalletBalances() {
     setMinThreshold(value)
     localStorage.setItem(LOCALSTORAGE_THRESHOLD_KEY, String(value))
   }
-
-  // TEMP TEST — remove before pushing
-  useEffect(() => {
-    setStarknetAddress('0xTestAddress')
-    setStarknetBalances({
-      ETH: 0.005,   // below threshold — should grey out
-      STRK: 0.002,  // below threshold — should grey out
-      USDC: 1.50,   // above — selectable
-      USDT: 0.50,   // above — selectable
-      DAI: 0.008,   // below threshold — should grey out
-      WBTC: 2.00,   // above — selectable
-    })
-  }, [])
-  // END TEMP TEST
 
   // ── Starknet wallet ────────────────────────────────────────────────────────
 
@@ -677,7 +667,8 @@ export default function WalletBalances() {
       const address =
         w.selectedAddress || w.selectedAccount?.address || w.account?.address
 
-      setStarknetAddress(address ?? null)
+      // Address is now managed by WalletContext via StarknetWallet component
+      // Just fetch balances if we have an address
       if (!address) return
 
       const balancesObj: Balances = {}
@@ -704,7 +695,8 @@ export default function WalletBalances() {
             try {
               kit.setWallet(wallet.id)
               const { address } = await kit.getAddress()
-              setStellarAddress(address)
+              // Address is now managed by WalletContext via StellarWallet component
+              // Just fetch balances if we have an address
               const res = await fetch(
                 `https://horizon-testnet.stellar.org/accounts/${address}`
               )

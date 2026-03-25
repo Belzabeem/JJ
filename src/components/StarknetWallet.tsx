@@ -9,15 +9,19 @@ import {
 import { StarknetkitConnector, useStarknetkitConnectModal } from 'starknetkit';
 import { Button } from './ui/button';
 import { BorderBeam } from './magicui/border-beam';
-// import { InjectedConnector } from "starknetkit/injected"
+import { useEffect } from 'react';
+import { useWallet } from '@/context/WalletContext';
  
 export default function StarknetWalletButton() {
   const { disconnect } = useDisconnect();
- 
+  
   const { connect, connectors } = useConnect();
   const { starknetkitConnectModal } = useStarknetkitConnectModal({
     connectors: connectors as StarknetkitConnector[],
   });
+  
+  const { address } = useAccount();
+  const { connectStarknet, disconnectStarknet } = useWallet();
  
   async function connectWallet() {
     const { connector } = await starknetkitConnectModal();
@@ -27,7 +31,14 @@ export default function StarknetWalletButton() {
     await connect({ connector: connector as Connector });
   }
  
-  const { address } = useAccount();
+  // Sync starknet wallet state to context when address changes
+  useEffect(() => {
+    if (address) {
+      connectStarknet(address, 'starknetkit');
+    } else {
+      disconnectStarknet();
+    }
+  }, [address, connectStarknet, disconnectStarknet]);
  
   if (!address) {
     return (

@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import HeaderSection from '@/components/Header'
 import StarknetProviderWrapper from './providers/StarknetProvider'
+import { WalletProvider } from '@/context/WalletContext'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -103,10 +104,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <StarknetProviderWrapper>
-            <HeaderSection />
-            {children}
-          </StarknetProviderWrapper>
+          <WalletProvider>
+            <StarknetProviderWrapper>
+              <HeaderSection />
+              {children}
+            </StarknetProviderWrapper>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>
