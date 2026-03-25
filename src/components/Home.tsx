@@ -1,4 +1,5 @@
 import TabsInSection from './TabsIn'
+import TransactionHistory from './TransactionHistory'
 import {
   HoverCard,
   HoverCardContent,
@@ -34,6 +35,9 @@ export default function HomeSection() {
       </div>
       <div className=' px-2 lg:px-20'>
         <TabsInSection />
+      </div>
+      <div className='px-2 lg:px-20 pb-8'>
+        <TransactionHistory />
       </div>
     </div>
   )
